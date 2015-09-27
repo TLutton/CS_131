@@ -39,10 +39,18 @@ let set_diff a b =
 	If there is no computed fixed point, the function's behavior is undefined per specification. **)
 let computed_fixed_point eq f x =  
 	let rec aux y z = 
-	if (eq y z) then y else aux z (f z)
+		if (eq y z) then y else aux z (f z)
 	in aux x (f x);;
 
 (** returns the computed periodic point for f with period p w.r.t. x
 
 	@Param eq : the equality predicate for f's domain **)
-(* let computed_periodic_point eq f p x = *)
+let rec computed_periodic_point eq f p x = 
+	let rec aux q y = 
+		if q = p then (if (eq y x) then x else computed_periodic_point eq f p (f x) )
+	else aux (q+1) (f y)
+in aux 0 x ;;
+
+
+
+
