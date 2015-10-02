@@ -52,5 +52,83 @@ let rec computed_periodic_point eq f p x =
 in aux 0 x ;;
 
 
+(** Filter Blind Alleys Shenanigans **)
+
+(** Algorithm:
+
+	1.	Find all N's that evaluate directly to T's. Add those N's to a 'safe' list
+	2.	Find all N's that indirectly evaluate to T's. 
+			A. Look for N's that evaluate to N's already in 'safe' list
+			B. Will need to loop several times removing N's that were already
+				placed into 'safe' list s
+	3.  Remove all rules that either start with or point to nonterminals not in the
+		'safe' list. 
+
+**)
+
+(** This function takes in a symbol and returns true if the symbol is a terminal. false otherwise *)
+let is_terminal x = match x with
+	| T _ -> true
+	| _ -> false ;;
+
+let is_nonterminal x = match x with
+	| N _ -> true
+	| _ -> false ;;
+
+
+(** This function takes in a list of symbols  *)
+let rec is_each_symbol_terminal = function
+	| [] -> true
+	| h::t -> if (is_terminal h) then (is_each_symbol_terminal t) else false ;;
+
+(** This function takes in a list of (nonterminal * symbol list) list and the empty list to o. 
+
+	Returns a list of nonterminals (AKA Ns) that have right sides that only lead to terminals
+
+	Point of the function is to start building the list that will be referenced to determine whether
+	or not an N is contributing to a blind alley. 
+
+	TODO: Should I make a list with list with no duplicates?? *)
+let rec get_Ns_with_all_terminals o = function
+	| [] -> o
+	| h::t -> if (is_each_symbol_terminal (snd h)) 
+				then (get_Ns_with_all_terminals (o @ [(fst h)]) t)  
+			else (get_Ns_with_all_terminals o t) ;;
+
+
+(** This function takes in a list of nonterminals that currently lead either directly or indirectly
+	to terminals and a list symbols to evaluate. 
+
+	Returns true if all nonterminals in symbols in 2nd input list are found in l.
+
+*)
+let rec is_each_symbol_ind_terminal l = function
+	| [] -> true
+	| h::t -> if ( (is_terminal h) || (is_a_in_b (match h with N x -> x) l) )
+				then (is_each_symbol_ind_terminal l t)
+				else false ;;
+
+(** This function takes in a list of nonterminals to o 
+	and a list of (nonterminal * symbol list) list to match. 
+
+	Returns a list of nonterminals that can indirectly reach a terminal. 
+
+Goal is that every nonterminal that is NOT in the return list constitutes a blind alley 
+
+Thought: This function should be called until N's are no longer added *)
+let rec get_Ns_with_ind_terminals safe = function 
+	| [] -> safe
+	| h::t -> if ( is_each_symbol_ind_terminal safe (snd h) )
+				then ( get_Ns_with_ind_terminals (safe @ [(fst h)]) t )
+			else (get_Ns_with_ind_terminals safe t) ;;
+
+
+(** returns a copy of the grammar g with all blind-alley rules removed while preserving
+	the original order of rules found in g.  **)
+(* let filter_blind_alleys g = *)
+	
+
+
+
 
 
