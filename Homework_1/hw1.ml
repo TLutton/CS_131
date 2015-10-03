@@ -135,8 +135,10 @@ Thought: This function should be called until N's are no longer added *)
 let rec get_Ns_with_ind_terminals safe = function 
 	| [] -> safe
 	| h::t -> if ( is_each_symbol_ind_terminal safe (snd h) )
-				then ( get_Ns_with_ind_terminals (safe @ [(fst h)]) t )
-			else (get_Ns_with_ind_terminals safe t) ;;
+				then ( if (is_a_in_b (fst h) safe)
+						then (get_Ns_with_ind_terminals safe t)
+						else (get_Ns_with_ind_terminals (safe @ [(fst h)]) t))
+				else (get_Ns_with_ind_terminals safe t) ;;
 
 (** ^^^ Should do something about adding duplicates to the list ^^^  **)
 
@@ -157,9 +159,41 @@ let rec loop s l = match l with
 	This means that there were Ns found that can reach Ts either directly
 	or indirectly. We should keep looping until no more Ns can reach Ts  *)
 let rec call_get_Ns safe l = match (loop safe l) with
-	h::t -> if (equal_sets (h::t) safe) 
+	| h::t -> if (equal_sets (h::t) safe) 
 				then safe 
-			else (call_get_Ns (h::t) l) ;;
+			else (call_get_Ns (h::t) l) 
+	| [] -> if (equal_sets safe [])
+				then safe
+			else (call_get_Ns [] l);;
+
+
+(** Get the set of rules that lead to terminals. Then remove all items from the 
+	grammar that aren't nonterminals in this list.
+
+	@Param g = rhs of grammar 
+	@Param s = list of nonterminals that are NOT blind alleys
+	@Param r = list that will be returned as rhs of grammar w/ no blind alleys
+
+	what to check LHS and RHS to make sure that all Ns are in the safe list. 
+
+*)
+
+
+let rec shrink_grammar g s r = match g with
+	| [] -> r
+	| h::t -> if (is_a_in_b (fst h) s) && is_each_symbol_ind_terminal s (snd h)
+				then ( shrink_grammar t s (r @ [h]) )
+				else ( shrink_grammar t s r)
+	;;
+
+(** Function that compiles a list of all nonterminals 
+	
+	Takes the SND of grammar pair as parameter. r is used to hold items for ret
+*)
+let rec get_nonterminal_list r = function
+ 	| [] ->  r
+ 	| h::t -> if (is_a_in_b (fst h) r) then (get_nonterminal_list r t)
+ 				else (get_nonterminal_list (r @ [(fst h)]) t) ;;
 
 
 (** returns a copy of the grammar g with all blind-alley rules removed while 
@@ -167,9 +201,11 @@ let rec call_get_Ns safe l = match (loop safe l) with
 
 	Create a list of nonterminals that are NOT blind alley Ns. Then look 
 	through snd g and find all instances of Ns not in the list. 
-
 **)
 let filter_blind_alleys g = 
+	( (fst g), 
+		( shrink_grammar (snd g) (call_get_Ns [] (snd g)) []) )
+;;
 	
 
 	
