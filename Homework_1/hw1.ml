@@ -59,7 +59,7 @@ let rec computed_periodic_point eq f p x =
 in aux 0 x ;;
 
 
-(** Filter Blind Alleys Shenanigans **)
+(** Filter Blind Alleys **)
 
 (** Algorithm:
 
@@ -112,10 +112,6 @@ let rec get_Ns_with_ind_terminals safe = function
 						then (get_Ns_with_ind_terminals safe t)
 						else (get_Ns_with_ind_terminals (safe @ [(fst h)]) t))
 				else (get_Ns_with_ind_terminals safe t) ;;
-
-(** ^^^ Should do something about adding duplicates to the list ^^^  **)
-
-
 
 (** Function that loops get_Ns_with_ind_terminals and stops when safe is no 
 	longer being modified 

@@ -1,0 +1,66 @@
+I wrote subset using a simple recursive looping style because it is efficient
+and easy to understand for this warmup exercise.
+
+I wrote equal_sets using the rule that two sets are equal if they are
+subsets of each other. 
+
+set_union could have been implemented by simply using the @ operator, but I 
+wanted to try to include as few duplicates as possible, so I added an 
+extra condition.
+
+set_intersection is implemented in a similar way to subset. I just save the
+matches instead of outputting true or false. 
+
+set_diff is defined as a-b. So I recursed by using h::t of a to check if each
+h was in b. If it was in b, then remove it from a and return what is left.
+
+I wrote computed_fixed_point to simply call itself until adjacent points are 
+equal in accordance to the given eq. The function loops forever unless a fixed
+point is found.
+
+computed_periodic_point is very similar to fixed point except I test for 
+equality after p calls. If the function is periodic, we only need to test
+over one period. If this does not return true on the first iteration, I try
+f x and then f^p+1 x... and so on.
+
+For filter_blind_alleys I used the following algorithm: 
+	1.	Find all N's that evaluate directly to T's. Add those N's to a 'safe' 
+		list
+	2.	Find all N's that indirectly evaluate to T's. 
+			A. Look for N's that evaluate to N's already in 'safe' list
+			B. Will need to loop several times removing N's that were already
+				placed into 'safe' list s
+	3.  Remove all rules that either start with or point to nonterminals not
+		in the 'safe' list. 
+	4. pair back up the start symbol and the result of step 3. 
+
+This was achieved by using several helper functions:
+
+is_terminal determines whether or not a symbol is a terminal symbol or not.
+
+is_each_symbol_ind_terminal tests for whether or not a symbol can reach a 
+terminal symbol (either directly or indirectly)
+
+get_Ns_with_ind_terminals is used to look through the list of rules a single
+time to gather all N's that can reach terminals.
+
+The loop is a helper function to loop for call_get_Ns.
+
+call_get_Ns is used to keep calling get_Ns_with_ind_terminals until no changes
+are made to the 'safe' list. This functions in a way similar to bubble sort.
+If there are no changes, then we're done bubbling. In our case, if there are 
+no changes, then we've found all the possible rules that can reach terminals.
+
+shrink_grammar is used to remove the blind_alleys from the list of rules. 
+
+---- Thoughts ----
+
+Overall I thought this project was fairly difficult syntactically. I was able
+to think of algorithms to solve each problem relatively easily (aside from
+filter_blind_alleys which was much more difficult) but the hardest part
+was actually getting the language to behave in the way that I wanted it to.
+The key that I found to help fix my code was to look at what the interpreter
+said the function currying types were. If they didn't match my expectations, 
+then I had to stop there and fix them which was good because once a helper
+function had the correct types in the interpreter, I knew it was correct after
+relatively simple testing. 
