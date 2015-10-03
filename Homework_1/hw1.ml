@@ -10,7 +10,7 @@ let rec subset a b = match a with
 
 (** returns true iff the represented sets are equal **)
 let equal_sets a b =
-	if (subset a b) = (subset b a) then true else false ;;
+	if (subset a b) && (subset b a) then true else false ;;
 
 (** returns a list representing the union of 'a' and 'b'. avoids adding 
 	duplicates from a to b. **)
