@@ -83,33 +83,6 @@ let is_terminal x = match x with
 	| T _ -> true
 	| _ -> false ;;
 
-let is_nonterminal x = match x with
-	| N _ -> true
-	| _ -> false ;;
-
-
-(** This function takes in a list of symbols  *)
-let rec is_each_symbol_terminal = function
-	| [] -> true
-	| h::t -> if (is_terminal h) then (is_each_symbol_terminal t) else false ;;
-
-(** This function takes in a list of (nonterminal * symbol list) list and the 
-empty list to o. 
-
-	Returns a list of nonterminals (AKA Ns) that have right sides that only 
-	lead to terminals
-
-	Point of the function is to start building the list that will be referenced 
-	to determine whether or not an N is contributing to a blind alley. 
-
-	TODO: Should I make a list with list with no duplicates?? *)
-let rec get_Ns_with_all_terminals o = function
-	| [] -> o
-	| h::t -> if (is_each_symbol_terminal (snd h)) 
-				then (get_Ns_with_all_terminals (o @ [(fst h)]) t)  
-			else (get_Ns_with_all_terminals o t) ;;
-
-
 (** This function takes in a list of nonterminals that currently lead either 
 	directly or indirectly to terminals and a list symbols to evaluate. 
 
@@ -153,8 +126,6 @@ let rec loop s l = match l with
 	| [] -> s
 	| h::t -> ( loop (get_Ns_with_ind_terminals s [h]) t );;
 
-
-
 (** Function calls itself @Param: safe and (loop safe llist) are not equal
 	This means that there were Ns found that can reach Ts either directly
 	or indirectly. We should keep looping until no more Ns can reach Ts  *)
@@ -166,7 +137,6 @@ let rec call_get_Ns safe l = match (loop safe l) with
 				then safe
 			else (call_get_Ns [] l);;
 
-
 (** Get the set of rules that lead to terminals. Then remove all items from the 
 	grammar that aren't nonterminals in this list.
 
@@ -177,24 +147,12 @@ let rec call_get_Ns safe l = match (loop safe l) with
 	what to check LHS and RHS to make sure that all Ns are in the safe list. 
 
 *)
-
-
 let rec shrink_grammar g s r = match g with
 	| [] -> r
 	| h::t -> if (is_a_in_b (fst h) s) && is_each_symbol_ind_terminal s (snd h)
 				then ( shrink_grammar t s (r @ [h]) )
 				else ( shrink_grammar t s r)
 	;;
-
-(** Function that compiles a list of all nonterminals 
-	
-	Takes the SND of grammar pair as parameter. r is used to hold items for ret
-*)
-let rec get_nonterminal_list r = function
- 	| [] ->  r
- 	| h::t -> if (is_a_in_b (fst h) r) then (get_nonterminal_list r t)
- 				else (get_nonterminal_list (r @ [(fst h)]) t) ;;
-
 
 (** returns a copy of the grammar g with all blind-alley rules removed while 
 	preserving the original order of rules found in g.  
