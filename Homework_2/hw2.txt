@@ -1,0 +1,34 @@
+The convert_grammar portion of the assignment was relatively straight forward.
+My function takes in a grammar of the homework-1 style and retunrs a grammar
+of the homework-2 style while is defined as a start symbol with a production
+function. It does this by first isolating the start symbol, which will remain
+the same, and then it calls cg_aux which takes a nonterminal symbol and the
+list of homework-1 style rules and matches each rule with its nonterminal. If
+the match is found, then it adds the rule to the list that belongs to the 
+nonterminal. If it doesn't match, it just keeps looking for rules that will
+match until it runs out of rules.
+
+The parse_prefix part of this assignment was very difficult to me and is the
+reason that I am turning in this assignment so late. In order to accomplish
+this task I use an and-matcher and an or-matcher. The and-matcher takes in 
+a rule to evaluate, the set of rules, an acceptor, the derivative string, and
+the remaining fragment to parse. if the eval rule is empty, I run the acceptor
+and accept that result. Otherwise, I split the eval rule and the frag and match 
+the head of the frag as either a terminal or nonterminal symbol. If it is a 
+terminal symbol, I check if that symbol matches the head of the frag. If it 
+does, then I call the and_matcher again to try to match the rest of the rule.
+If it does not match, then I return None to the or_matcher. If the symbol
+is a nonterminal, I create another level of recursion by calling the 
+or-matcher again. 
+
+The or-matcher takes a start symbol, list of rules, acceptor, deriv, frag and 
+rule to eval. If that eval list is empty, then it returns None. Otherwise
+it splits the list into a head and tail and tries to match based on the left
+most rule of the list. It does this by calling the and-matcher. If it returns
+a value other than None, then it returns that value. Otherwise, it will try 
+again with another level of or-matcher recursion. 
+
+This method is effective in passing all of the given test cases plus 2 of my 
+own. But struggles when the first nonterminal of a rule is the same nonterminal 
+that is calling the rule. These cases of left-recursion result in infinite
+looping since the algorithm always tries the first rule in the list. 
