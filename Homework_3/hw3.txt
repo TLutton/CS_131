@@ -1,0 +1,259 @@
+Testing modifying Number of threads for Null and Synchronized:
+
+java UnsafeMemory Null 			X 100000 6 1 2 3 4 5
+java UnsafeMemory Synchronized 	X 100000 6 1 2 3 4 5
+
+* With 1 thread, Null and Synchronized behave roughly the same. ~200 ns/trans
+* With 2 threads, Null uses ~500 ns/transition. Synch uses ~1200 ns/transition
+* With 4 threads, Null uses ~850 ns/transition. Synch uses ~2700 ns/transition
+* With 8 threads, Null uses ~1400 ns/transition. Synch uses ~5500 ns/transition
+* With 16 threads, Null uses ~4000 ns/transition w/ large deviation. Anywhere 
+from 2000 to 10000 with the majority being around 4000. Synch uses 
+~10500 ns/transition consistantly.
+* With 32 threads, Null uses ~7000 ns/transition. Synch uses 
+~17000 ns/transition
+
+Testing modifying number of swaps for Null and Synchornized:
+
+java UnsafeMemory Null			8 XXXXXX 6 1 2 3 4 5
+java UnsafeMemory Synchronized  8 XXXXXX 6 1 2 3 4 5
+
+I am choosing 8 as a constant number of threads.
+
+* with 1000 swaps, 	Null is ~35000 ns/transition. Synch is ~35000 ns/transition
+* With 10000 swaps, Null is ~7500 ns/transition.  Synch is ~10000 ns/transition
+* With 100000 swaps, Null is ~1400 ns/transition. Synch is ~5500 ns/transition
+* With 1000000 swaps, Null is ~1800 ns/transition. Synch is ~3500 ns/transition
+* With 10000000 swaps, Null is ~100 ns/transition. Synch is ~3300 ns/transition
+* With 100000000 swaps, Null is ~20 ns/transition. Synch is ~3300 ns/transition 
+(very slow execution)
+
+Maybe there was a compiler optimization when reaching 10,000,000 calls to a 
+function that does nothing and only returns true?
+
+
+
+Testing Unsynchronized:
+
+In order to get it to not hang, I had to provide many more arguments than just 
+the 5 given in the example. I used 20 arguments.
+
+Testing modifying number of swaps for Unsynchronized. 
+
+java UnsafeMemory Unsynchornized 8 XXXXXX 6 3 3 3 3 3 ..... 3
+
+* with 1000 swaps, ~38000 ns/transition
+* with 10000 swaps, ~8500 ns/transition
+* with 100000 swaps, ~1700 ns/transition
+* with 1000000 swaps, ~1100 ns/transition
+* with 10000000 swaps, ~510 ns/transition
+* with 100000000 swaps, ~350 ns/transition
+
+Every test I ran resulted in a sum mismatch, but as you can see, the 
+Unsynchronized test is much more "efficient" than synchronized since threads 
+never have to wait.
+
+Testing modifying number of threads for Unsynchronized:
+
+java UnsafeMemory Unsynchronized X 100000 6 3 3 3 3 3 ..... 3
+
+* with 1 thread, ~230 ns/transition
+* with 2 threads, ~900 ns/transition
+* with 4 threads, ~1400 ns/transition
+* with 8 threads, ~2000 ns/transition
+* with 16 threads, ~3500 ns/transition
+
+The Unsynchronized model was also much more efficient when ramping up the 
+number of threads than the synchronized model. This is due to the same fact
+that there are no waits and multiple threads can execute in parallel. 
+
+
+
+Testing GetNSet:
+
+Testing GetNSet with variable number of threads
+
+java UnsafeMemory GetNSet X 100000 6 3 3 3 3 3 3 ....... 3
+
+* with 1 thread, ~230 ns/transition
+* with 2 threads, ~1200 ns/transition
+* with 4 threads, ~1800 ns/transition
+* with 8 threads, ~2800 ns/transition
+* with 16 threads, ~6000 ns/transition
+
+Testing GetNSet with variable number of swaps
+
+java UnsafeMemory GetNSet 8 XXXXXX 6 3 3 3 3 3 ....... 3
+
+* with 1000 swaps, ~40000 ns/transition
+* with 10000 swaps, ~11000 ns/transition
+* with 100000 swaps, ~2800 ns/transition
+* with 1000000 swaps, ~1500 ns/transition
+* with 10000000 swaps, ~1200 ns/transition
+
+This is much better than synchronized in terms of efficiency but is not very
+"safe". Every call returned the result "output too large". This is due to a race
+between the get and set. Get and set are atomic operations, but the -- or ++ 
+that is performed is not. When you perform a get you need to create a temporary
+local variable to do the decrement/increment. This allows other threads
+to perform a get and then when you try to set, you are setting a value that is
+incorrect because multiple threads should have modified that value. 
+
+
+BetterSafe Implementation:
+
+I implemented BetterSafe using fine-grained locking methods which lock the 
+individual memory positions within the value array instead of locking the entire
+array like Synchronized does. This allows threads to access values all over
+the ray simultaneously while also maintaining 100% reliability. It is not as
+efficient GetNSet because data races result in a wait for some
+threads in the BetterSafe implementation while data races in the GetNSet simply
+result in data inconsistencies favoring performance. 
+
+BetterSafe Testing:
+
+Testing BetterSafe with variable number of threads
+
+java UnsafeMemory BetterSafe X 100000 6 3 3 3 3 3 3 .... 3
+
+* with 1 thread, ~100 ns/transition
+* with 2 threads, ~700 ns/transition
+* with 4 threads, ~1400 ns/transition
+* with 8 threads, ~3000 ns/transition
+* with 16 threads, ~12000 ns/transition
+
+Testing BetterSafe with variable number of swaps
+
+java UnsafeMemory BetterSafe 8 XXXXXX 6 3 3 3 3 3  .... 3
+
+* with 1000 swaps, ~50000 ns/transition
+* with 10000 swaps, ~17000 ns/transition
+* with 100000 swaps, ~6000 ns/transition
+* with 1000000 swaps, ~3000 ns/transition
+* with 10000000 swaps, ~3000 ns/transition
+
+BetterSafe utilizes fine-grained locking which makes it much quicker than
+synchronized. Synchronized locks up the entire array of bytes whereas 
+BetterSafe only locks the specific elements of the array that are needed. This
+allows multiple threads to operate on the array in a safe manner without fear
+of loss of data. A tradeoff with this method is that once you have many
+threads trying to access the same elements, threads will have to wait in order
+to perform their operation which results in a decrease in utilization.
+
+
+BetterSorry implementation:
+
+In order to achieve an implementation that is very similar to GetNSet in most
+ways but better in some ways I used an AtomicIntegerArray with getAndDecrement
+and getAndIncrement member functions instead of performing separate get() and
+set(int) operations. This results in similar performance, but better reliablity.
+In the testing that I have listed below, I would still receive an output too
+large error on the large swap tests, but that value is much smaller than
+the GetNSwap values. i.e. 16 != 6 vs 100 != 6. That is the benefit of
+eliminating the aforementioned race condition.
+
+GetNSet works like: 
+
+byte tmp = value.get(i);
+tmp++; // some other thread uses get(i) during this execution
+value.set(i,tmp);
+
+This makes GetNSet susceptible to many race conditions where I placed the 
+comment. By using getAndIncrement and getAndDecrement, we eliminate this
+race condition which produces better reliability (even though not 100% 
+reliability). 
+
+
+BetterSorry testing:
+
+Testing BetterSorry with veriable number of threads
+
+java UnsafeMemory BetterSorry 1 100000 6 3 3 3 3 3 .... 3
+
+* with 1 thread, ~240 ns/transition
+* with 2 threads, ~1000 ns/transition
+* with 4 threads, ~1800 ns/transition
+* with 8 threads, ~3200 ns/transition
+* with 16 threads, ~5500 ns/transition
+
+Testing BetterSorry with variable number of swaps
+
+java UnsafeMemory BetterSorry 8 XXXXX 6 3 3 3 3 3 .... 3
+
+* with 1000 swaps, ~40000 ns/transition
+* with 10000 swaps, ~9000 ns/transition
+* with 100000 swaps, ~3000 ns/transition
+* with 1000000 swaps, ~1500 ns/transition
+* with 10000000 swaps, ~1300 ns/transition
+
+As the results show, this method is very similar performance wise to the 
+GetNSet method. The benefit comes in reliability which occurs in the error
+"output too large." When I received that error with GetNSet, the number 
+mismatch was consistently very large like 120+ != 6. While testing BetterSorry,
+the mismatch was consistently small, like 7 != 6 or 11 != 6. This shows that
+there is still a race condition that is not a very big conflict in even a 
+million swaps!
+
+
+
+Characterization of each model's performance and reliability:
+
+Null: Performance - Great. Reliability - None.  DRF
+
+Synchronized: Performance - Moderate. Reliability - Perfect.  Synchronized's
+strength is that it is very reliable. However it performs rather slowly when
+utilizing many threads due to a significant bottle neck in granting access
+to the array. This is because Synchronized synchronizes the entire array which
+forces every other thread to wait while synch'd functions are operating. DRF.
+
+Unsynchronized: Performance - Very Good (when not deadlocked). 
+Reliability - Very poor. Unsynchronized acts much more quickly than Synch 
+because threads never wait. This allows 100% thread utilization, but at a 
+major sacrifice to reliability. In some cases performance can really
+suffer because of data races causing infinite looping. 
+
+Case -> java UnsafeMemory Unsynchronized 16 100000 6 2 3 4 2 1
+
+GetNSet: Performance - Good. Reliability - Poor. GetNSet is better in the 
+performance category than synchronized due to its atomic access of single
+elements in the array, however it fails in reliability due to multiple
+race conditions (one if the if statement) and one when you do the actual
+increment decrement operation. Not DRF.
+
+Case -> java UnsafeMemory GetNSet 8 100000 6 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+
+BetterSafe: Performance - Moderate+. Reliability - Perfect. BetterSafe utilizes
+fine-grain locking to lock specific values in the array for the amount
+of time that they are needed to perform the if check/decrement/increment
+and no longer. This is better in performance than Syncrhonize (but not at lower
+scale array size) because there is still a utilization problem when threads 
+are waiting for to attain the same indices in the array. This is a problem 
+when the array is smaller, but BetterSafe gets much more efficient when
+the array is giant because there is less of a chance of collision and thus
+waits. Performance can go up to Good or even Great when scaled to very large
+array sizes + many threads. DRF Free. 
+
+BetterSorry: Performance - Good. Reliability - Poor+. I used the atomic
+increment and decrement functions of the AtomicIntegerArray to implment
+this function. This is better than GetNSet because it eliminates the race
+condition of the increment/decrement operations. This makes the speed very 
+similar and the reliability much better. However, reliability is still not 
+perfect. Not DRF.
+
+Case -> java UnsafeMemory BetterSorry 8 100000 6 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+
+
+
+
+GDI Recommendation:
+
+Based on my testing, 2 models stand out: BetterSafe and BetterSorry. 
+BetterSorry is very quick when run over large arrays with many threads which 
+may make it suitable for many purposes. However, since we are performing an 
+application as important as GDI's (predicting Christmas presents) we need
+to have great accuracy. Luckily BetterSafe delivers great speed when used
+at scale and 100% DRF accuracy. Therefore BetterSafe is the best implementation
+to choose. We can accept the small tradeoff in performance because we will
+be using this to do millions and millions of swaps while using many threads.
+The likelihood of collision and waiting is smaller as you use more threads and
+very large input sequences. That makes BetterSafe best. 
