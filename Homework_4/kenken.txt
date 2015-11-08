@@ -1,0 +1,49 @@
+No-op Kenken is very similar to regular kenken, but when it defines cages,
+it leaves off the operation. Instead of a cage containing a number, an operation,
+and a list of coordinates, the cage only contains the coordinates and number. 
+
+In order to play no-op kenken one must not only fill in the individual boxes
+with numbers from 1-N, but they must also specify the appropriate operation
+for each cage. 
+
+General function call:
+% @Param N: Width/Height of Matrix
+% @Param C: Cage constraints
+% @Param Ti: list of list of ints that represents completed matrix
+% @Param Tc: list of constraints with operation added to match definition of C
+%	in parts 1 and 2 of the project.
+noop_kenken(N, C, Ti, Tc). 
+
+This predicate will have must slower performance than kenken and plain_kenken.
+It must make more assumptions when generating a correct board. It must 
+imply operations and apply them to the board. Then it will take the 
+constraints in Tc and run the normal kenken to see if it returns the same
+result. If it does, then you have created a valid no-op kenken solver. 
+
+noop_kenken_testcase(
+	4,
+	[
+		(6, [1-1, 1-2, 2-1]),
+		(96, [1-3, 1-4, 2-2, 2-3, 2-4]),
+		(1, 3-1, 3-2),
+		(1, 4-1, 4-2),
+		(8, [3-3, 4-3, 4-4]),
+		(2, [3-4])
+	]).
+
+?- noop_kenken_testcase(N, C), noop_kenken(N, C, Ti, Tc)
+Ti = [[1,2,3,4],[3,4,2,1],[4,3,1,2],[2,1,4,3]] 
+Tc =[
+   		+(6, [1-1, 1-2, 2-1]),
+   		*(96, [1-3, 1-4, 2-2, 2-3, 2-4]),
+   		-(1, 3-1, 3-2),
+   		-(1, 4-1, 4-2),
+  		+(8, [3-3, 4-3, 4-4]),
+  		*(2, [3-4])
+  	]
+
+
+The correct behavior is to place a list of lists into the Ti which contains
+a matrix of what should belong in each box. The Tc is a modified constraint
+list which will match an operation and a pair of a number and a list or a
+number and 2 coords. 
